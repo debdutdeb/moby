@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start daemon",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "program": "${workspaceFolder}/dockerd",
+            "preLaunchTask": "Build daemon",
+            "args": [
+                "-p",
+                "${workspaceFolder}/docker.pid",
+                "--host",
+                "unix://${workspaceFolder}/docker.sock"
+            ],
+            "asRoot": true,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Attach to delve",
+            "type": "go",
+            "request": "attach",
+            "port": 37165,
+            "debugAdapter": "dlv-dap",
+        }
+    ]
+}
