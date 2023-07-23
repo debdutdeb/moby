@@ -2,6 +2,7 @@ package image // import "github.com/docker/docker/api/server/router/image"
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,6 +31,7 @@ import (
 
 // Creates an image from Pull or from Import
 func (ir *imageRouter) postImagesCreate(ctx context.Context, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
+	fmt.Println("here")
 	if err := httputils.ParseForm(r); err != nil {
 		return err
 	}
@@ -45,6 +47,8 @@ func (ir *imageRouter) postImagesCreate(ctx context.Context, w http.ResponseWrit
 	)
 	defer output.Close()
 
+	// img will have the reference to the registry
+
 	w.Header().Set("Content-Type", "application/json")
 
 	version := httputils.VersionFromContext(ctx)
@@ -59,6 +63,7 @@ func (ir *imageRouter) postImagesCreate(ctx context.Context, w http.ResponseWrit
 	}
 
 	if img != "" { // pull
+		fmt.Println("here again?")
 		metaHeaders := map[string][]string{}
 		for k, v := range r.Header {
 			if strings.HasPrefix(k, "X-Meta-") {
@@ -69,6 +74,7 @@ func (ir *imageRouter) postImagesCreate(ctx context.Context, w http.ResponseWrit
 		// For a pull it is not an error if no auth was given. Ignore invalid
 		// AuthConfig to increase compatibility with the existing API.
 		authConfig, _ := registry.DecodeAuthConfig(r.Header.Get(registry.AuthHeader))
+		fmt.Printf("authConfig: %#v\n", authConfig)
 		progressErr = ir.backend.PullImage(ctx, img, tag, platform, metaHeaders, authConfig, output)
 	} else { // import
 		src := r.Form.Get("fromSrc")
