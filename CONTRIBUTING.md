@@ -101,7 +101,7 @@ the contributors guide.
     <td>
       <p>
         Register for the Docker Community Slack at
-	<a href="https://dockr.ly/slack" target="_blank">https://dockr.ly/slack</a>.
+	<a href="https://dockr.ly/comm-slack" target="_blank">https://dockr.ly/comm-slack</a>.
         We use the #moby-project channel for general discussion, and there are separate channels for other Moby projects such as #containerd.
       </p>
     </td>
@@ -422,6 +422,6 @@ The rules:
     guidelines. Since you've read all the rules, you now know that.
 
 If you are having trouble getting into the mood of idiomatic Go, we recommend
-reading through [Effective Go](https://golang.org/doc/effective_go.html). The
-[Go Blog](https://blog.golang.org) is also a great resource. Drinking the
+reading through [Effective Go](https://go.dev/doc/effective_go). The
+[Go Blog](https://go.dev/blog/) is also a great resource. Drinking the
 kool-aid is a lot easier than going thirsty.

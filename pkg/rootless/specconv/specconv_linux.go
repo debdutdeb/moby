@@ -1,6 +1,7 @@
 package specconv // import "github.com/docker/docker/pkg/rootless/specconv"
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -8,9 +9,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containerd/log"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 )
+
+// ToRootfulInRootless is used for "rootful-in-rootless" dind;
+// the daemon is running in UserNS but has no access to RootlessKit API socket, host filesystem, etc.
+//
+// This fuction does:
+// * Fix up OOMScoreAdj (needed since systemd v250: https://github.com/moby/moby/issues/46563)
+func ToRootfulInRootless(spec *specs.Spec) {
+	if spec.Process == nil || spec.Process.OOMScoreAdj == nil {
+		return
+	}
+	if currentOOMScoreAdj := getCurrentOOMScoreAdj(); *spec.Process.OOMScoreAdj < currentOOMScoreAdj {
+		*spec.Process.OOMScoreAdj = currentOOMScoreAdj
+	}
+}
 
 // ToRootless converts spec to be compatible with "rootless" runc.
 // * Remove non-supported cgroups
@@ -26,13 +41,13 @@ func ToRootless(spec *specs.Spec, v2Controllers []string) error {
 func getCurrentOOMScoreAdj() int {
 	b, err := os.ReadFile("/proc/self/oom_score_adj")
 	if err != nil {
-		logrus.WithError(err).Warn("failed to read /proc/self/oom_score_adj")
+		log.G(context.TODO()).WithError(err).Warn("failed to read /proc/self/oom_score_adj")
 		return 0
 	}
 	s := string(b)
 	i, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil {
-		logrus.WithError(err).Warnf("failed to parse /proc/self/oom_score_adj (%q)", s)
+		log.G(context.TODO()).WithError(err).Warnf("failed to parse /proc/self/oom_score_adj (%q)", s)
 		return 0
 	}
 	return i
@@ -40,11 +55,13 @@ func getCurrentOOMScoreAdj() int {
 
 func toRootless(spec *specs.Spec, v2Controllers []string, currentOOMScoreAdj int) error {
 	if len(v2Controllers) == 0 {
-		// Remove cgroup settings.
-		spec.Linux.Resources = nil
-		spec.Linux.CgroupsPath = ""
+		if spec.Linux != nil {
+			// Remove cgroup settings.
+			spec.Linux.Resources = nil
+			spec.Linux.CgroupsPath = ""
+		}
 	} else {
-		if spec.Linux.Resources != nil {
+		if spec.Linux != nil && spec.Linux.Resources != nil {
 			m := make(map[string]struct{})
 			for _, s := range v2Controllers {
 				m[s] = struct{}{}
@@ -77,7 +94,7 @@ func toRootless(spec *specs.Spec, v2Controllers []string, currentOOMScoreAdj int
 		}
 	}
 
-	if spec.Process.OOMScoreAdj != nil && *spec.Process.OOMScoreAdj < currentOOMScoreAdj {
+	if spec.Process != nil && spec.Process.OOMScoreAdj != nil && *spec.Process.OOMScoreAdj < currentOOMScoreAdj {
 		*spec.Process.OOMScoreAdj = currentOOMScoreAdj
 	}
 
@@ -109,6 +126,9 @@ func toRootless(spec *specs.Spec, v2Controllers []string, currentOOMScoreAdj int
 func isHostNS(spec *specs.Spec, nsType specs.LinuxNamespaceType) (bool, error) {
 	if strings.Contains(string(nsType), string(os.PathSeparator)) {
 		return false, fmt.Errorf("unexpected namespace type %q", nsType)
+	}
+	if spec.Linux == nil {
+		return false, nil
 	}
 	for _, ns := range spec.Linux.Namespaces {
 		if ns.Type == nsType {
@@ -144,15 +164,17 @@ func bindMountHostProcfs(spec *specs.Spec) error {
 		}
 	}
 
-	// Remove ReadonlyPaths for /proc/*
-	newROP := spec.Linux.ReadonlyPaths[:0]
-	for _, s := range spec.Linux.ReadonlyPaths {
-		s = path.Clean(s)
-		if !strings.HasPrefix(s, "/proc/") {
-			newROP = append(newROP, s)
+	if spec.Linux != nil {
+		// Remove ReadonlyPaths for /proc/*
+		newROP := spec.Linux.ReadonlyPaths[:0]
+		for _, s := range spec.Linux.ReadonlyPaths {
+			s = path.Clean(s)
+			if !strings.HasPrefix(s, "/proc/") {
+				newROP = append(newROP, s)
+			}
 		}
+		spec.Linux.ReadonlyPaths = newROP
 	}
-	spec.Linux.ReadonlyPaths = newROP
 
 	return nil
 }

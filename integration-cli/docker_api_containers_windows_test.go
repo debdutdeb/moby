@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -11,9 +10,9 @@ import (
 	"testing"
 
 	winio "github.com/Microsoft/go-winio"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/testutil"
 	"github.com/pkg/errors"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -48,7 +47,7 @@ func (s *DockerAPISuite) TestContainersAPICreateMountsBindNamedPipe(c *testing.T
 	cmd := fmt.Sprintf("echo %s > %s", text, containerPipeName)
 	name := "test-bind-npipe"
 
-	ctx := context.Background()
+	ctx := testutil.GetContext(c)
 	client := testEnv.APIClient()
 	_, err = client.ContainerCreate(ctx,
 		&container.Config{
@@ -66,7 +65,7 @@ func (s *DockerAPISuite) TestContainersAPICreateMountsBindNamedPipe(c *testing.T
 		nil, nil, name)
 	assert.NilError(c, err)
 
-	err = client.ContainerStart(ctx, name, types.ContainerStartOptions{})
+	err = client.ContainerStart(ctx, name, container.StartOptions{})
 	assert.NilError(c, err)
 
 	err = <-ch
@@ -74,7 +73,7 @@ func (s *DockerAPISuite) TestContainersAPICreateMountsBindNamedPipe(c *testing.T
 	assert.Check(c, is.Equal(text, strings.TrimSpace(string(b))))
 }
 
-func mountWrapper(device, target, mType, options string) error {
+func mountWrapper(t *testing.T, device, target, mType, options string) error {
 	// This should never be called.
 	return errors.Errorf("there is no implementation of Mount on this platform")
 }

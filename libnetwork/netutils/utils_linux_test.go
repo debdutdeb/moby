@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/docker/docker/internal/testutils/netnsutils"
 	"github.com/docker/docker/libnetwork/ipamutils"
-	"github.com/docker/docker/libnetwork/testutils"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/vishvananda/netlink"
 	"gotest.tools/v3/assert"
@@ -107,84 +107,22 @@ func AssertNoOverlap(CIDRx string, CIDRy string, t *testing.T) {
 }
 
 func TestNetworkOverlaps(t *testing.T) {
-	//netY starts at same IP and ends within netX
+	// netY starts at same IP and ends within netX
 	AssertOverlap("172.16.0.1/24", "172.16.0.1/25", t)
-	//netY starts within netX and ends at same IP
+	// netY starts within netX and ends at same IP
 	AssertOverlap("172.16.0.1/24", "172.16.0.128/25", t)
-	//netY starts and ends within netX
+	// netY starts and ends within netX
 	AssertOverlap("172.16.0.1/24", "172.16.0.64/25", t)
-	//netY starts at same IP and ends outside of netX
+	// netY starts at same IP and ends outside of netX
 	AssertOverlap("172.16.0.1/24", "172.16.0.1/23", t)
-	//netY starts before and ends at same IP of netX
+	// netY starts before and ends at same IP of netX
 	AssertOverlap("172.16.1.1/24", "172.16.0.1/23", t)
-	//netY starts before and ends outside of netX
+	// netY starts before and ends outside of netX
 	AssertOverlap("172.16.1.1/24", "172.16.0.1/22", t)
-	//netY starts and ends before netX
+	// netY starts and ends before netX
 	AssertNoOverlap("172.16.1.1/25", "172.16.0.1/24", t)
-	//netX starts and ends before netY
+	// netX starts and ends before netY
 	AssertNoOverlap("172.16.1.1/25", "172.16.2.1/24", t)
-}
-
-func TestNetworkRange(t *testing.T) {
-	// Simple class C test
-	_, network, _ := net.ParseCIDR("192.168.0.1/24")
-	first, last := NetworkRange(network)
-	if !first.Equal(net.ParseIP("192.168.0.0")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("192.168.0.255")) {
-		t.Error(last.String())
-	}
-
-	// Class A test
-	_, network, _ = net.ParseCIDR("10.0.0.1/8")
-	first, last = NetworkRange(network)
-	if !first.Equal(net.ParseIP("10.0.0.0")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("10.255.255.255")) {
-		t.Error(last.String())
-	}
-
-	// Class A, random IP address
-	_, network, _ = net.ParseCIDR("10.1.2.3/8")
-	first, last = NetworkRange(network)
-	if !first.Equal(net.ParseIP("10.0.0.0")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("10.255.255.255")) {
-		t.Error(last.String())
-	}
-
-	// 32bit mask
-	_, network, _ = net.ParseCIDR("10.1.2.3/32")
-	first, last = NetworkRange(network)
-	if !first.Equal(net.ParseIP("10.1.2.3")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("10.1.2.3")) {
-		t.Error(last.String())
-	}
-
-	// 31bit mask
-	_, network, _ = net.ParseCIDR("10.1.2.3/31")
-	first, last = NetworkRange(network)
-	if !first.Equal(net.ParseIP("10.1.2.2")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("10.1.2.3")) {
-		t.Error(last.String())
-	}
-
-	// 26bit mask
-	_, network, _ = net.ParseCIDR("10.1.2.3/26")
-	first, last = NetworkRange(network)
-	if !first.Equal(net.ParseIP("10.1.2.0")) {
-		t.Error(first.String())
-	}
-	if !last.Equal(net.ParseIP("10.1.2.63")) {
-		t.Error(last.String())
-	}
 }
 
 // Test veth name generation "veth"+rand (e.g.veth0f60e2c)
@@ -247,7 +185,7 @@ func TestUtilGenerateRandomMAC(t *testing.T) {
 }
 
 func TestNetworkRequest(t *testing.T) {
-	defer testutils.SetupTestOSContext(t)()
+	defer netnsutils.SetupTestOSContext(t)()
 
 	nw, err := FindAvailableNetwork(ipamutils.GetLocalScopeDefaultNetworks())
 	if err != nil {

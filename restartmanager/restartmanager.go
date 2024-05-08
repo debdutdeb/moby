@@ -63,7 +63,7 @@ func (rm *RestartManager) ShouldRestart(exitCode uint32, hasBeenManuallyStopped 
 	if rm.active {
 		return false, nil, fmt.Errorf("invalid call on an active restart manager")
 	}
-	// if the container ran for more than 10s, regardless of status and policy reset the
+	// if the container ran for more than 10s, regardless of status and policy reset
 	// the timeout back to the default.
 	if executionDuration.Seconds() >= 10 {
 		rm.timeout = 0
@@ -86,7 +86,7 @@ func (rm *RestartManager) ShouldRestart(exitCode uint32, hasBeenManuallyStopped 
 		restart = true
 	case rm.policy.IsOnFailure():
 		// the default value of 0 for MaximumRetryCount means that we will not enforce a maximum count
-		if max := rm.policy.MaximumRetryCount; max == 0 || rm.restartCount < max {
+		if maxRetryCount := rm.policy.MaximumRetryCount; maxRetryCount == 0 || rm.restartCount < maxRetryCount {
 			restart = exitCode != 0
 		}
 	}

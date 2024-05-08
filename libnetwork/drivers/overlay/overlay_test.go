@@ -7,12 +7,7 @@ import (
 
 	"github.com/docker/docker/libnetwork/driverapi"
 	"github.com/docker/docker/pkg/plugingetter"
-	"github.com/docker/libkv/store/boltdb"
 )
-
-func init() {
-	boltdb.Register()
-}
 
 type driverTester struct {
 	t *testing.T
@@ -25,8 +20,7 @@ func (dt *driverTester) GetPluginGetter() plugingetter.PluginGetter {
 	return nil
 }
 
-func (dt *driverTester) RegisterDriver(name string, drv driverapi.Driver,
-	cap driverapi.Capability) error {
+func (dt *driverTester) RegisterDriver(name string, drv driverapi.Driver, cap driverapi.Capability) error {
 	if name != testNetworkType {
 		dt.t.Fatalf("Expected driver register name to be %q. Instead got %q",
 			testNetworkType, name)

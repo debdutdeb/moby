@@ -33,6 +33,7 @@ func (v *localVolume) needsMount() bool {
 func (v *localVolume) mount() error {
 	return nil
 }
+
 func (v *localVolume) unmount() error {
 	return nil
 }
@@ -40,6 +41,11 @@ func (v *localVolume) unmount() error {
 func unmount(_ string) {}
 
 func (v *localVolume) postMount() error {
+	return nil
+}
+
+// restoreIfMounted is a no-op on Windows (because mounts are not supported).
+func (v *localVolume) restoreIfMounted() error {
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package fileutils // import "github.com/docker/docker/pkg/fileutils"
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path"
@@ -238,5 +239,13 @@ func TestCreateIfNotExistsFile(t *testing.T) {
 
 	if fileinfo.IsDir() {
 		t.Errorf("Should have been a file, seems it's not")
+	}
+}
+
+func BenchmarkGetTotalUsedFds(b *testing.B) {
+	ctx := context.Background()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = GetTotalUsedFds(ctx)
 	}
 }

@@ -25,6 +25,18 @@ func TestNetworkCreateError(t *testing.T) {
 	assert.Check(t, is.ErrorType(err, errdefs.IsSystem))
 }
 
+// TestNetworkCreateConnectionError verifies that connection errors occurring
+// during API-version negotiation are not shadowed by API-version errors.
+//
+// Regression test for https://github.com/docker/cli/issues/4890
+func TestNetworkCreateConnectionError(t *testing.T) {
+	client, err := NewClientWithOpts(WithAPIVersionNegotiation(), WithHost("tcp://no-such-host.invalid"))
+	assert.NilError(t, err)
+
+	_, err = client.NetworkCreate(context.Background(), "mynetwork", types.NetworkCreate{})
+	assert.Check(t, is.ErrorType(err, IsErrConnectionFailed))
+}
+
 func TestNetworkCreate(t *testing.T) {
 	expectedURL := "/networks/create"
 
@@ -53,10 +65,9 @@ func TestNetworkCreate(t *testing.T) {
 	}
 
 	networkResponse, err := client.NetworkCreate(context.Background(), "mynetwork", types.NetworkCreate{
-		CheckDuplicate: true,
-		Driver:         "mydriver",
-		EnableIPv6:     true,
-		Internal:       true,
+		Driver:     "mydriver",
+		EnableIPv6: true,
+		Internal:   true,
 		Options: map[string]string{
 			"opt-key": "opt-value",
 		},

@@ -1,6 +1,3 @@
-variable "APT_MIRROR" {
-  default = "cdn-fastly.deb.debian.org"
-}
 variable "DOCKER_DEBUG" {
   default = ""
 }
@@ -14,7 +11,7 @@ variable "DOCKER_BUILDTAGS" {
   default = ""
 }
 variable "DOCKER_GITCOMMIT" {
-  default = "HEAD"
+  default = null
 }
 
 # Docker version such as 23.0.0-dev. Automatically generated through Git ref.
@@ -47,18 +44,6 @@ variable "PACKAGER_NAME" {
   default = ""
 }
 
-# GITHUB_REF is the actual ref that triggers the workflow and used as version
-# when tag is pushed: https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
-variable "GITHUB_REF" {
-  default = ""
-}
-
-# GITHUB_SHA is the commit SHA that triggered the workflow and used as commit.
-# https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
-variable "GITHUB_SHA" {
-  default = ""
-}
-
 # Special target: https://github.com/docker/metadata-action#bake-definition
 target "docker-metadata-action" {
   tags = ["moby-bin:local"]
@@ -76,13 +61,12 @@ function "bindir" {
 target "_common" {
   args = {
     BUILDKIT_CONTEXT_KEEP_GIT_DIR = 1
-    APT_MIRROR = APT_MIRROR
     DOCKER_DEBUG = DOCKER_DEBUG
     DOCKER_STATIC = DOCKER_STATIC
     DOCKER_LDFLAGS = DOCKER_LDFLAGS
     DOCKER_BUILDTAGS = DOCKER_BUILDTAGS
-    DOCKER_GITCOMMIT = DOCKER_GITCOMMIT != "" ? DOCKER_GITCOMMIT : GITHUB_SHA
-    VERSION = VERSION != "" ? VERSION : GITHUB_REF
+    DOCKER_GITCOMMIT = DOCKER_GITCOMMIT
+    VERSION = VERSION
     PLATFORM = PLATFORM
     PRODUCT = PRODUCT
     DEFAULT_PRODUCT_LICENSE = DEFAULT_PRODUCT_LICENSE

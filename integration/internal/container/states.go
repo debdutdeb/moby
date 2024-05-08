@@ -10,26 +10,31 @@ import (
 	"gotest.tools/v3/poll"
 )
 
-// IsStopped verifies the container is in stopped state.
-func IsStopped(ctx context.Context, client client.APIClient, containerID string) func(log poll.LogT) poll.Result {
+// RunningStateFlagIs polls for the container's Running state flag to be equal to running.
+func RunningStateFlagIs(ctx context.Context, apiClient client.APIClient, containerID string, running bool) func(log poll.LogT) poll.Result {
 	return func(log poll.LogT) poll.Result {
-		inspect, err := client.ContainerInspect(ctx, containerID)
+		inspect, err := apiClient.ContainerInspect(ctx, containerID)
 
 		switch {
 		case err != nil:
 			return poll.Error(err)
-		case !inspect.State.Running:
+		case inspect.State.Running == running:
 			return poll.Success()
 		default:
-			return poll.Continue("waiting for container to be stopped")
+			return poll.Continue("waiting for container to be %s", map[bool]string{true: "running", false: "stopped"}[running])
 		}
 	}
 }
 
+// IsStopped verifies the container is in stopped state.
+func IsStopped(ctx context.Context, apiClient client.APIClient, containerID string) func(log poll.LogT) poll.Result {
+	return RunningStateFlagIs(ctx, apiClient, containerID, false)
+}
+
 // IsInState verifies the container is in one of the specified state, e.g., "running", "exited", etc.
-func IsInState(ctx context.Context, client client.APIClient, containerID string, state ...string) func(log poll.LogT) poll.Result {
+func IsInState(ctx context.Context, apiClient client.APIClient, containerID string, state ...string) func(log poll.LogT) poll.Result {
 	return func(log poll.LogT) poll.Result {
-		inspect, err := client.ContainerInspect(ctx, containerID)
+		inspect, err := apiClient.ContainerInspect(ctx, containerID)
 		if err != nil {
 			return poll.Error(err)
 		}
@@ -43,9 +48,9 @@ func IsInState(ctx context.Context, client client.APIClient, containerID string,
 }
 
 // IsSuccessful verifies state.Status == "exited" && state.ExitCode == 0
-func IsSuccessful(ctx context.Context, client client.APIClient, containerID string) func(log poll.LogT) poll.Result {
+func IsSuccessful(ctx context.Context, apiClient client.APIClient, containerID string) func(log poll.LogT) poll.Result {
 	return func(log poll.LogT) poll.Result {
-		inspect, err := client.ContainerInspect(ctx, containerID)
+		inspect, err := apiClient.ContainerInspect(ctx, containerID)
 		if err != nil {
 			return poll.Error(err)
 		}
@@ -60,9 +65,9 @@ func IsSuccessful(ctx context.Context, client client.APIClient, containerID stri
 }
 
 // IsRemoved verifies the container has been removed
-func IsRemoved(ctx context.Context, cli client.APIClient, containerID string) func(log poll.LogT) poll.Result {
+func IsRemoved(ctx context.Context, apiClient client.APIClient, containerID string) func(log poll.LogT) poll.Result {
 	return func(log poll.LogT) poll.Result {
-		inspect, err := cli.ContainerInspect(ctx, containerID)
+		inspect, err := apiClient.ContainerInspect(ctx, containerID)
 		if err != nil {
 			if errdefs.IsNotFound(err) {
 				return poll.Success()

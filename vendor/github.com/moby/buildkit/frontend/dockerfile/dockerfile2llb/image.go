@@ -1,16 +1,12 @@
 package dockerfile2llb
 
 import (
-	"github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/util/system"
+	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// Image is the JSON structure which describes some basic information about the image.
-// This provides the `application/vnd.oci.image.config.v1+json` mediatype when marshalled to JSON.
-type Image image.Image
-
-func clone(src Image) Image {
+func clone(src dockerspec.DockerOCIImage) dockerspec.DockerOCIImage {
 	img := src
 	img.Config = src.Config
 	img.Config.Env = append([]string{}, src.Config.Env...)
@@ -19,14 +15,23 @@ func clone(src Image) Image {
 	return img
 }
 
-func emptyImage(platform ocispecs.Platform) Image {
-	img := Image{
-		Image: ocispecs.Image{
-			Architecture: platform.Architecture,
-			OS:           platform.OS,
-			Variant:      platform.Variant,
-		},
+func cloneX(src *dockerspec.DockerOCIImage) *dockerspec.DockerOCIImage {
+	if src == nil {
+		return nil
 	}
+	img := clone(*src)
+	return &img
+}
+
+func emptyImage(platform ocispecs.Platform) dockerspec.DockerOCIImage {
+	img := dockerspec.DockerOCIImage{}
+	img.Architecture = platform.Architecture
+	img.OS = platform.OS
+	img.OSVersion = platform.OSVersion
+	if platform.OSFeatures != nil {
+		img.OSFeatures = append([]string{}, platform.OSFeatures...)
+	}
+	img.Variant = platform.Variant
 	img.RootFS.Type = "layers"
 	img.Config.WorkingDir = "/"
 	img.Config.Env = []string{"PATH=" + system.DefaultPathEnv(platform.OS)}

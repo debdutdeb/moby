@@ -7,14 +7,21 @@ import (
 // Config provides containerd configuration data for the server
 type Config struct {
 	Debug bool `toml:"debug"`
+	Trace bool `toml:"trace"`
 
 	// Root is the path to a directory where buildkit will store persistent data
 	Root string `toml:"root"`
 
 	// Entitlements e.g. security.insecure, network.host
 	Entitlements []string `toml:"insecure-entitlements"`
+
+	// LogFormat is the format of the logs. It can be "json" or "text".
+	Log LogConfig `toml:"log"`
+
 	// GRPC configuration settings
 	GRPC GRPCConfig `toml:"grpc"`
+
+	OTEL OTELConfig `toml:"otel"`
 
 	Workers struct {
 		OCI        OCIConfig        `toml:"oci"`
@@ -26,6 +33,10 @@ type Config struct {
 	DNS *DNSConfig `toml:"dns"`
 
 	History *HistoryConfig `toml:"history"`
+}
+
+type LogConfig struct {
+	Format string `toml:"format"`
 }
 
 type GRPCConfig struct {
@@ -45,9 +56,13 @@ type TLSConfig struct {
 	CA   string `toml:"ca"`
 }
 
+type OTELConfig struct {
+	SocketPath string `toml:"socketPath"`
+}
+
 type GCConfig struct {
 	GC            *bool      `toml:"gc"`
-	GCKeepStorage int64      `toml:"gckeepstorage"`
+	GCKeepStorage DiskSpace  `toml:"gckeepstorage"`
 	GCPolicy      []GCPolicy `toml:"gcpolicy"`
 }
 
@@ -56,6 +71,8 @@ type NetworkConfig struct {
 	CNIConfigPath string `toml:"cniConfigPath"`
 	CNIBinaryPath string `toml:"cniBinaryPath"`
 	CNIPoolSize   int    `toml:"cniPoolSize"`
+	BridgeName    string `toml:"bridgeName"`
+	BridgeSubnet  string `toml:"bridgeSubnet"`
 }
 
 type OCIConfig struct {
@@ -97,6 +114,7 @@ type ContainerdConfig struct {
 	Labels    map[string]string `toml:"labels"`
 	Platforms []string          `toml:"platforms"`
 	Namespace string            `toml:"namespace"`
+	Runtime   ContainerdRuntime `toml:"runtime"`
 	GCConfig
 	NetworkConfig
 	Snapshotter string `toml:"snapshotter"`
@@ -113,11 +131,17 @@ type ContainerdConfig struct {
 	Rootless bool `toml:"rootless"`
 }
 
+type ContainerdRuntime struct {
+	Name    string                 `toml:"name"`
+	Path    string                 `toml:"path"`
+	Options map[string]interface{} `toml:"options"`
+}
+
 type GCPolicy struct {
-	All          bool     `toml:"all"`
-	KeepBytes    int64    `toml:"keepBytes"`
-	KeepDuration int64    `toml:"keepDuration"`
-	Filters      []string `toml:"filters"`
+	All          bool      `toml:"all"`
+	KeepBytes    DiskSpace `toml:"keepBytes"`
+	KeepDuration Duration  `toml:"keepDuration"`
+	Filters      []string  `toml:"filters"`
 }
 
 type DNSConfig struct {
@@ -127,6 +151,6 @@ type DNSConfig struct {
 }
 
 type HistoryConfig struct {
-	MaxAge     int64 `toml:"maxAge"`
-	MaxEntries int64 `toml:"maxEntries"`
+	MaxAge     Duration `toml:"maxAge"`
+	MaxEntries int64    `toml:"maxEntries"`
 }
